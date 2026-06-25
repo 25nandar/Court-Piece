@@ -18,18 +18,25 @@ import {
   callTrump,
   requestRedeal,
   playCard,
-  decideStop,
   startNextHand,
   thaap,
   canRequestRedeal,
 } from './game/game.js';
-import { aiCallTrump, aiPlay, aiStopDecision } from './game/ai.js';
+import { aiCallTrump, aiPlay } from './game/ai.js';
+
+// CLIENT_ORIGIN may be a single origin or a comma-separated list (e.g. your
+// Vercel URL). Defaults to '*' for easy local dev.
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || '*';
+const corsOrigin =
+  CLIENT_ORIGIN === '*'
+    ? '*'
+    : CLIENT_ORIGIN.split(',').map((s) => s.trim());
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: corsOrigin }));
 
 const httpServer = createServer(app);
-const io = new Server(httpServer, { cors: { origin: '*' } });
+const io = new Server(httpServer, { cors: { origin: corsOrigin } });
 
 const PORT = process.env.PORT || 3001;
 
@@ -76,7 +83,6 @@ function publicRoomState(room, viewerId) {
     score: g.score,
     handHistory: g.handHistory,
     redealCount: g.redealCount,
-    canStopDecision: g.canStopDecision,
     pendingOutcome: g.pendingOutcome,
     lastTrick: g.lastTrick,
     lastWinnerTeam: g.lastWinnerTeam,
@@ -129,20 +135,6 @@ function maybeRunBotTurn(room) {
         room.game = result.state;
         broadcastRoom(room);
         setTimeout(() => maybeRunBotTurn(room), 700);
-      }, 900);
-    }
-    return;
-  }
-
-  if (g.phase === 'awaiting-stop') {
-    const decider = room.players.find((p) => p.seat === g.canStopDecision);
-    if (decider?.isBot) {
-      setTimeout(() => {
-        if (!room.game || room.game.phase !== 'awaiting-stop') return;
-        const seat = room.game.canStopDecision;
-        room.game = decideStop(room.game, seat, aiStopDecision());
-        broadcastRoom(room);
-        maybeRunBotTurn(room);
       }, 900);
     }
     return;
@@ -251,17 +243,6 @@ io.on('connection', (socket) => {
     ack?.({ ok: true });
     broadcastRoom(room);
     setTimeout(() => maybeRunBotTurn(room), 500);
-  });
-
-  socket.on('game:decide-stop', ({ code, stop }, ack) => {
-    const room = getRoom(code);
-    if (!room?.game) return ack?.({ ok: false, error: 'No game' });
-    const player = room.players.find((p) => p.id === socket.id);
-    if (!player) return ack?.({ ok: false, error: 'Not in game' });
-    room.game = decideStop(room.game, player.seat, !!stop);
-    ack?.({ ok: true });
-    broadcastRoom(room);
-    maybeRunBotTurn(room);
   });
 
   socket.on('game:thaap', ({ code }, ack) => {

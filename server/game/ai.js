@@ -76,7 +76,3 @@ export function aiPlay(state, seat) {
   if (nonTrumps.length > 0) return [...nonTrumps].sort(byRankAsc)[0];
   return [...legal].sort(byRankAsc)[0];
 }
-
-export function aiStopDecision() {
-  return true; // Always take the kot
-}

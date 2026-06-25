@@ -102,7 +102,7 @@ export default function App() {
               <li>Remaining 8 cards dealt to everyone. Trump-caller leads trick 1.</li>
               <li>Follow suit if you can; otherwise play any card (including a trump = <em>kaat</em>).</li>
               <li>Highest trump wins, else highest card of suit led.</li>
-              <li>First team to 7 of 13 tricks wins the hand. Winning the <em>first</em> 7 in a row = a <strong>kot</strong>. All 13 = <strong>baunie</strong> (52 kots).</li>
+              <li>The hand ends the moment a team reaches 7 tricks. Winning all 7 while the opponents stay on 0 (a 7-0 sweep) = a <strong>kot</strong>.</li>
               <li>7 consecutive simple wins also count as 1 kot.</li>
             </ul>
           </details>

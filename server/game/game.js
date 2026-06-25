@@ -34,8 +34,6 @@ export function createGame({ players, options = {}, firstTrumpCaller = 0 }) {
       streak: { A: 0, B: 0 },
     },
     redealCount: 0,
-    firstSevenTeam: 'pending',
-    canStopDecision: null,
     pendingOutcome: null,
     lastTrick: null,
     lastWinnerTeam: null,
@@ -60,8 +58,6 @@ export function startHand(state) {
     turnSeat: null,
     tricksWon: { A: 0, B: 0 },
     trickCount: 0,
-    firstSevenTeam: 'pending',
-    canStopDecision: null,
     pendingOutcome: null,
     handOver: false,
     lastTrick: null,
@@ -109,7 +105,6 @@ export function callTrump(state, suit) {
 export function playCard(state, seat, card) {
   if (state.phase !== 'playing') return { state, error: 'Not in playing phase' };
   if (state.turnSeat !== seat) return { state, error: 'Not your turn' };
-  if (state.canStopDecision !== null) return { state, error: 'Decision pending' };
   const hand = state.hands[seat];
   const legal = legalPlays(hand, state.leadSuit);
   if (!legal.some((c) => cardEq(c, card))) return { state, error: 'Illegal play' };
@@ -139,14 +134,7 @@ export function playCard(state, seat, card) {
   };
   const trickCount = state.trickCount + 1;
 
-  let firstSevenTeam = state.firstSevenTeam;
-  if (firstSevenTeam === 'pending') {
-    firstSevenTeam = winnerTeam;
-  } else if (firstSevenTeam && firstSevenTeam !== winnerTeam) {
-    firstSevenTeam = null;
-  }
-
-  let next = {
+  const next = {
     ...state,
     hands: newHands,
     currentTrick: [],
@@ -154,55 +142,29 @@ export function playCard(state, seat, card) {
     turnSeat: winnerSeat,
     tricksWon,
     trickCount,
-    firstSevenTeam,
     lastTrick: { trick: newTrick, winnerSeat },
   };
 
-  // Baunie locked-in: 13 tricks played
-  if (trickCount === 13) {
+  // The hand ends the moment a team reaches 7 trick wins — no stop/continue
+  // decision. A 7-0 sweep is a kot; any other 7th-trick win is a simple win.
+  if (tricksWon.A >= 7 || tricksWon.B >= 7) {
     const winningTeam = tricksWon.A >= 7 ? 'A' : 'B';
-    return { state: finalizeHand(next, winningTeam) };
-  }
-
-  // Kot decision: same team won the first 7
-  if (trickCount === 7 && firstSevenTeam !== null) {
-    next = { ...next, canStopDecision: winnerSeat, phase: 'awaiting-stop' };
+    const loserTeam = winningTeam === 'A' ? 'B' : 'A';
+    const type = tricksWon[loserTeam] === 0 ? 'kot' : 'win';
+    return { state: finalizeHand(next, winningTeam, type) };
   }
 
   return { state: next };
 }
 
-export function decideStop(state, seat, stop) {
-  if (state.phase !== 'awaiting-stop') return state;
-  if (state.canStopDecision !== seat) return state;
-  if (stop) {
-    return finalizeHand(state, state.firstSevenTeam, 'kot');
-  }
-  return {
-    ...state,
-    phase: 'playing',
-    canStopDecision: null,
-  };
-}
-
-function finalizeHand(state, winnerTeam, forcedType) {
-  let type = forcedType;
-  if (!type) {
-    if (state.tricksWon[winnerTeam] === 13) type = 'baunie';
-    else type = 'win';
-  }
-
+function finalizeHand(state, winnerTeam, type) {
   const score = {
     kots: { ...state.score.kots },
     streak: { ...state.score.streak },
   };
   const loserTeam = winnerTeam === 'A' ? 'B' : 'A';
 
-  if (type === 'baunie') {
-    score.kots[winnerTeam] += 52;
-    score.streak[winnerTeam] = 0;
-    score.streak[loserTeam] = 0;
-  } else if (type === 'kot') {
+  if (type === 'kot') {
     score.kots[winnerTeam] += 1;
     score.streak[winnerTeam] = 0;
     score.streak[loserTeam] = 0;
@@ -218,7 +180,7 @@ function finalizeHand(state, winnerTeam, forcedType) {
   const callerTeam = teamOf(state.trumpCallerSeat);
   let nextCaller;
   if (callerTeam === winnerTeam) {
-    if (type === 'kot' || type === 'baunie') {
+    if (type === 'kot') {
       nextCaller = partnerOf(state.trumpCallerSeat);
     } else {
       nextCaller = state.trumpCallerSeat;
@@ -235,7 +197,6 @@ function finalizeHand(state, winnerTeam, forcedType) {
     lastWinnerTeam: winnerTeam,
     lastWinnerType: type,
     score,
-    canStopDecision: null,
     handHistory: [
       ...state.handHistory,
       {

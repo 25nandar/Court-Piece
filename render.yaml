@@ -1,0 +1,19 @@
+# Render Blueprint for the Court Piece realtime server.
+# Render auto-detects this file when you create a "Blueprint" from the repo.
+services:
+  - type: web
+    name: court-piece-server
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Set this to your Vercel URL after the frontend is deployed, e.g.
+      # https://court-piece.vercel.app  (comma-separate multiple origins).
+      # Leave unset to allow all origins.
+      - key: CLIENT_ORIGIN
+        sync: false

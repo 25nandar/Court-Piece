@@ -60,7 +60,6 @@ export default function Table({ room, onLeave }) {
   function playCard(card) { socket.emit('game:play-card', { code: room.code, card }); }
   function callTrump(suit) { socket.emit('game:call-trump', { code: room.code, suit }); }
   function requestRedeal() { socket.emit('game:request-redeal', { code: room.code }); }
-  function decideStop(stop) { socket.emit('game:decide-stop', { code: room.code, stop }); }
   function thaap() { socket.emit('game:thaap', { code: room.code }); }
   function nextHand() { socket.emit('game:next-hand', { code: room.code }); }
 
@@ -138,12 +137,6 @@ export default function Table({ room, onLeave }) {
               )}
             </div>
           )}
-          {room.phase === 'awaiting-stop' && room.canStopDecision !== mySeat && (
-            <div className="stop-banner">
-              {room.players.find((p) => p.seat === room.canStopDecision)?.name} is
-              deciding: stop for kot, or go for baunie?
-            </div>
-          )}
         </div>
       </div>
 
@@ -214,36 +207,13 @@ export default function Table({ room, onLeave }) {
         </div>
       )}
 
-      {/* Stop-or-continue modal */}
-      {room.phase === 'awaiting-stop' && room.canStopDecision === mySeat && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <h2>Take the kot?</h2>
-            <p>
-              Your team won the first 7 tricks. <strong>Stop now</strong> to claim a
-              kot, or <strong>play on</strong> — win <em>all</em> remaining tricks for
-              a baunie (52 kots!), but if you drop a single trick it counts as only a
-              simple win.
-            </p>
-            <div className="modal-actions">
-              <button className="primary" onClick={() => decideStop(true)}>
-                Stop · take kot
-              </button>
-              <button onClick={() => decideStop(false)}>Continue · go for baunie</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Hand-end modal */}
       {room.phase === 'hand-end' && (
         <div className="modal-backdrop">
           <div className="modal">
             <h2>
               Team {room.lastWinnerTeam} wins
-              {room.lastWinnerType === 'baunie' && ' — BAUNIE! 🏆'}
-              {room.lastWinnerType === 'kot' && ' — KOT!'}
-              {room.lastWinnerType === 'win' && ''}
+              {room.lastWinnerType === 'kot' && ' — KOT! 🏆'}
             </h2>
             <p>
               Tricks: A {room.tricksWon.A} – B {room.tricksWon.B}
