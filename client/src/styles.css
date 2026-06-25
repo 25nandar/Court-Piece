@@ -312,6 +312,7 @@ input[type="text"]:focus {
   border-bottom: 1px solid var(--border-soft);
   gap: 0.5rem;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 .header-mid {
   display: flex;
@@ -343,7 +344,8 @@ input[type="text"]:focus {
 
 .table {
   position: relative;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0; /* allow the table to shrink so the bottom bar is never clipped */
   margin: 1rem;
   background:
     radial-gradient(ellipse at center, #1e6b3a 0%, #0d3d20 100%);
@@ -352,7 +354,6 @@ input[type="text"]:focus {
   box-shadow:
     inset 0 0 40px rgba(0, 0, 0, 0.6),
     0 8px 30px rgba(0, 0, 0, 0.5);
-  min-height: 360px;
   overflow: hidden;
 }
 
@@ -585,6 +586,7 @@ input[type="text"]:focus {
   background: rgba(0, 0, 0, 0.55);
   padding: 0.6rem 1rem;
   border-top: 1px solid var(--border-soft);
+  flex-shrink: 0;
 }
 .my-info {
   display: flex;
@@ -731,4 +733,32 @@ input[type="text"]:focus {
   .trick-area { width: 180px; height: 180px; }
   .trump-buttons { grid-template-columns: 1fr 1fr; }
   .modal { padding: 1.25rem; }
+
+  .bottom-bar { padding: 0.4rem 0.5rem; }
+
+  /* Keep the whole hand in one tappable row: fan the cards with overlap and
+     let them scroll sideways if they still don't fit. No wrapping = nothing
+     ever falls below the screen. */
+  .hand {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 0;
+    min-height: 80px;
+    padding: 6px 8px 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .hand::-webkit-scrollbar { display: none; }
+  .hand .card {
+    margin-left: -24px;
+    box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.45);
+  }
+  .hand .card:first-child { margin-left: 0; }
+  /* Tap feedback (no hover on touch) — lift the pressed card above its neighbours */
+  .hand .card:active:not(:disabled) {
+    transform: translateY(-12px);
+    z-index: 10;
+  }
 }
